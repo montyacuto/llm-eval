@@ -2,70 +2,138 @@
 
 ## Overview
 
-This Python-based pipeline efficiently runs prompts from text corpora through various GGUF (GPT-Generated Unified Format) language models using `llama-cpp-python`. It captures model outputs and performance statistics. An accompanying script evaluates these outputs, calculating BLEU and ROUGE scores against ground truth references and generating aggregated performance metrics per model.
+This Python-based pipeline runs prompts from text corpora through various GGUF (GPT-Generated Unified Format) language models using `llama-cpp-python`. It captures model outputs and performance statistics, then evaluates these outputs by calculating BLEU and ROUGE scores against ground truth references. The pipeline also includes extensive visualization capabilities to analyze model performance.
 
-A key feature of the generation script (`gguf_prompt_runner.py`) is its ability to load each model only once, resetting its context for each prompt to ensure clean, isolated responses without the overhead of frequent model reloading. The evaluation script (`evaluate_outputs.py`) then processes the generated outputs to provide comparable metrics across models.
+A key feature of the generation script (`gguf_prompt_runner.py`) is its ability to load each model only once, resetting its context for each prompt to ensure clean, isolated responses without the overhead of frequent model reloading. The evaluation script (`evaluate_outputs.py`) processes the generated outputs to provide comparable metrics across models, and the visualization component (`model_visualizations.py`) generates comprehensive plots for performance analysis.
 
 ## Features
 
-* **Model Processing**: Runs prompts through multiple GGUF models specified in a list file.
-* **Corpus Handling**: Accepts multiple prompt corpora, also specified in a list file.
-* **Efficient Generation**: Loads each GGUF model once per run, resetting context for individual prompts.
-* **Output Generation**: Saves detailed generation outputs (prompt, response, tokens, time) in JSON format per model and corpus. Human-readable text outputs are also generated.
-* **Performance Logging**: Captures generation time and tokens-per-second for each prompt.
-* **Evaluation Metrics**: Calculates BLEU and ROUGE scores for model responses against provided ground truth files (optional).
-* **Aggregated Results**: Generates summary files comparing models based on average performance (TPS, response length) and evaluation scores (BLEU, ROUGE).
-* **Hardware Acceleration**: Supports NVIDIA CUDA, AMD ROCm, and Apple Metal via `llama-cpp-python` build flags.
-* **Flexible Configuration**: Uses a central JSON configuration file (`config.json`) for both generation and evaluation, with overrides possible via command-line arguments.
+* **Model Processing**
+* **Corpus Handling**
+* **Output Capture**
+* **Performance Logging**
+* **Evaluation Metrics**
+* **Aggregated Results**
+* **Visualization**
+* **Hardware Acceleration**
+* **Configuration**
 
 ## Prerequisites
 
-* **Python**: Version 3.9 or newer is recommended.
-* **Conda**: Recommended for managing Python environments. (Miniconda or Anaconda)
-* **Git**: May be required for specific `llama-cpp-python` installations.
-* **C++ Compiler**: Necessary for building `llama-cpp-python` (GCC/G++, Clang, MSVC).
-* **Optional Acceleration Hardware**: CUDA Toolkit / ROCm Drivers / Metal for GPU support.
+* **Python**: Version 3.9 or newer
+* **Conda**: Recommended for managing Python environments (Miniconda or Anaconda)
+* **Git**: Required for some installation methods
+* **C++ Compiler**: Necessary for building `llama-cpp-python`
+* **Hardware-specific requirements**:
+  * **Windows with CUDA**: CUDA Toolkit, Visual Studio Build Tools
+  * **Linux with CUDA**: CUDA Toolkit, GCC/G++
+  * **Mac with Apple Silicon**: Xcode Command Line Tools
 
-## Setup and Installation
+## Installation
 
-1.  **Navigate to the Pipeline Directory**:
-    Ensure you have the `gguf_prompt_runner.py` and `evaluate_outputs.py` scripts and navigate to their directory.
-    ```bash
-    cd /path/to/gguf_pipeline
-    ```
+### 1. Set Up the Environment
 
-2.  **Create a Conda Environment** (Recommended):
-    ```bash
-    conda create -n gguf_pipeline python=3.10 -y # Or your preferred Python 3.9+
-    conda activate gguf_pipeline
-    ```
+```bash
+# Create a conda environment
+conda create -n llamaconda=<python_version>
+conda activate gguf_pipeline
 
-3.  **Install Core Dependencies**:
-    ```bash
-    pip install tqdm llama-cpp-python # Install llama-cpp-python first (see below)
-    ```
+# Clone the repository (if applicable)
+git clone https://github.com/montyacuto/llm-eval.git
+cd llm-eval
+```
 
-4.  **Install `llama-cpp-python` (Crucial Step)**:
-    Follow the instructions in the original README section based on your hardware (CPU, NVIDIA CUDA, Apple Metal). Correct installation is vital for model execution.
+### 2. Install llama-cpp-python
 
-    * **Example (CPU Only)**: `pip install llama-cpp-python`
-    * **Example (NVIDIA CUDA)**: `CMAKE_ARGS="-DLLAMA_CUBLAS=ON" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir --force-reinstall --upgrade`
-    * **Example (Apple Metal)**: `CMAKE_ARGS="-DGGML_METAL=on" pip install -U llama-cpp-python --no-cache-dir`
+#### Option 1: Prebuilt Wheels (Easiest)
 
-5.  **Install Evaluation Dependencies** (Optional but Recommended for Scoring):
-    ```bash
-    pip install nltk rouge-score pandas
-    ```
-    * `nltk` and `rouge-score` are needed for calculating BLEU and ROUGE scores. The script will download necessary NLTK data (`punkt`) on first run if needed.
-    * `pandas` is used for convenient handling and saving of results tables (.csv output).
+For basic CPU support:
 
-## Directory Structure (Recommended)
+```bash
+pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+```
 
-Organize your files for clarity:
+For CUDA-based GPU acceleration:
 
+```bash
+# For specific CUDA versions (example: CUDA 11.8)
+pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/<cuda-version>
+#replace <cuda-version> with cu121 for CUDA 12.1, cu122 for CUDA 12.2, etc...
+```
+
+Available CUDA versions are typically CUDA 12.1-12.4 - find additional information and support for other backends at [llama-cpp-python](https://llama-cpp-python.readthedocs.io/en/latest/)
+
+#### Option 2: Build from Source
+##### Windows CUDA:
+
+1. **Install Visual Studio Build Tools**:
+   - Download and install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+   - Select "Desktop development with C++" workload
+   - Ensure you install the MSVC compiler and Windows SDK
+
+2. **Install CUDA Toolkit**:
+   - Download and install [NVIDIA CUDA Toolkit](https://developer.nvidia.com/cuda-downloads) (version 11.7 or later recommended)
+   - Make sure CUDA_PATH environment variable is set (usually done automatically by installer)
+
+3. **Build and install llama-cpp-python**:
+```bash
+# For CUDA installation
+set CMAKE_ARGS=-DLLAMA_CUBLAS=on
+set FORCE_CMAKE=1
+pip install llama-cpp-python --no-cache-dir --force-reinstall --upgrade
+```
+
+##### Linux CUDA
+
+1. **Install CUDA Toolkit**:
+```bash
+# For Ubuntu/Debian
+sudo apt update
+sudo apt install -y build-essential
+# Install CUDA Toolkit - version depends on your GPU and driver
+# Visit https://developer.nvidia.com/cuda-downloads for instructions
+```
+
+2. **Build and install llama-cpp-python**:
+```bash
+# For CUDA installation
+CMAKE_ARGS="-DLLAMA_CUBLAS=on" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir --force-reinstall --upgrade
+```
+
+##### Mac with Apple Silicon
+
+1. **Install Xcode Command Line Tools**:
+```bash
+xcode-select --install
+```
+
+2. **Build and install llama-cpp-python with Metal**:
+```bash
+CMAKE_ARGS="-DGGML_METAL=on" pip install llama-cpp-python --no-cache-dir --force-reinstall --upgrade
+```
+
+### 3. Install Additional Dependencies
+
+```bash
+# Core dependencies
+pip install tqdm
+
+# Evaluation dependencies
+pip install nltk rouge-score pandas
+
+# Visualization dependencies
+pip install matplotlib seaborn numpy
+```
+
+## Directory Structure
+
+The default directory structure the pipeline will expect (can be customized using config files):
+
+```
 gguf_pipeline/
 ├── gguf_prompt_runner.py       # The generation script
-├── evaluate_outputs.py       # The evaluation script
+├── evaluate_outputs.py         # The evaluation script
+├── model_visualizations.py     # The visualization module
 ├── config.json                 # Central configuration file
 │
 ├── Input/
@@ -78,7 +146,7 @@ gguf_pipeline/
 │       ├── corpus_A_truth.txt  # Ground truths for corpus_A.txt
 │       └── corpus_B_truth.txt  # Ground truths for corpus_B.txt
 │
-├── Models/                     # Store your GGUF model files here (or list paths in models.txt)
+├── Models/                     # Store your GGUF model files here
 │   ├── Gemma/
 │   │   └── gemma-3-1b-it-GGUF/
 │   │       └── gemma-3-1b-it-Q4_K_M.gguf
@@ -87,155 +155,191 @@ gguf_pipeline/
 │           └── llama-3.2-1b-instruct-q8_0.gguf
 │
 └── Output/                     # Default output directory (created by scripts)
-├── ModelNameStem1/         # Sub-directory for model 1 outputs
-│   ├── corpus_A_out.json
-│   ├── corpus_A_out.txt
-│   └── ...
-├── ModelNameStem2/         # Sub-directory for model 2 outputs
-│   ├── corpus_A_out.json
-│   └── ...
-│
-├── all_evaluation_results.json # Filtered per-prompt results across all models
-├── all_evaluation_results.csv  # (Same data as JSON, requires pandas)
-├── all_performance_metrics.json# Aggregated average metrics per model
-└── all_performance_metrics.csv # (Same data as JSON, requires pandas)
+    ├── plots/                  # Overall visualization plots
+    │   ├── avg_performance_per_model.png
+    │   ├── avg_scores_per_model.png
+    │   └── avg_speed_vs_avg_scores.png
+    │
+    ├── ModelNameStem1/         # Sub-directory for model 1 outputs
+    │   ├── plots/              # Model-specific visualizations
+    │   │   ├── ModelNameStem1_speed_vs_bleu.png
+    │   │   └── ...
+    │   ├── corpus_A_out.json
+    │   ├── corpus_A_out.txt
+    │   └── ...
+    ├── ModelNameStem2/         # Sub-directory for model 2 outputs
+    │   └── ...
+    │
+    ├── all_evaluation_results.json # Filtered per-prompt results across all models
+    ├── all_evaluation_results.csv  # CSV format of evaluation results
+    ├── all_performance_metrics.json# Aggregated average metrics per model
+    └── all_performance_metrics.csv # CSV format of performance metrics
+```
 
 ## Input Files Format
 
-1.  **Models List File (`models.txt`)**:
-    * Plain text file.
-    * Each line contains the path (relative to the pipeline directory or absolute) to a GGUF model file.
-    * Example:
-        ```txt
-        Models/Gemma/gemma-3-1b-it-GGUF/gemma-3-1b-it-Q4_K_M.gguf
-        Models/Llama/Llama-3.2-1B-Instruct-Q8_0-GGUF/llama-3.2-1b-instruct-q8_0.gguf
-        # Lines starting with # are ignored
-        ```
+### 1. Models List File (`models.txt`)
+Plain text file with each line containing a path to a GGUF model file:
+```
+Models/Gemma/gemma-3-1b-it-GGUF/gemma-3-1b-it-Q4_K_M.gguf
+Models/Llama/Llama-3.2-1B-Instruct-Q8_0-GGUF/llama-3.2-1b-instruct-q8_0.gguf
+# Lines starting with # are ignored
+```
 
-2.  **Prompt Corpora List File (`corpora.txt`)**:
-    * Plain text file.
-    * Each line should contain the **basename** (filename) of a prompt corpus file located in the `prompts_dir` specified in `config.json`.
-    * Example:
-        ```txt
-        corpus_A.txt
-        corpus_B.txt
-        ```
+### 2. Prompt Corpora List File (`corpora.txt`)
+Plain text file with each line containing the name of a prompt corpus file:
+```
+corpus_A.txt
+corpus_B.txt
+```
 
-3.  **Prompt Corpus Files (e.g., `Input/Prompts/corpus_A.txt`)**:
-    * Plain text files containing the actual prompts.
-    * Prompts are separated by the `delimiter` string defined in `config.json` (default is `---`).
-    * If the delimiter is not found, each non-empty line is treated as a separate prompt.
+### 3. Prompt Corpus Files (e.g., `Input/Prompts/corpus_A.txt`)
+Text files containing prompts separated by a delimiter (default is `---`, can be set in config):
+```
+What is the capital of France?
+---
+Explain the concept of machine learning.
+---
+Summarize the plot of Hamlet.
+```
 
-4.  **Ground Truth Files (e.g., `Input/Truth/corpus_A_truth.txt`)**:
-    * Optional, but required for BLEU/ROUGE scoring in the evaluation step.
-    * Must be located in the `truth_dir` specified in `config.json`.
-    * The filename must match the corresponding prompt corpus file with `_truth` appended before the extension (e.g., `corpus_A.txt` -> `corpus_A_truth.txt`).
-    * Contains the reference "correct" answers or desired outputs for each prompt in the corresponding corpus file.
-    * The reference answers should be separated by the **same delimiter** used in the prompt corpus file.
-    * The number of reference answers must exactly match the number of prompts in the corresponding corpus file for scoring to occur.
+### 4. Ground Truth Files (e.g., `Input/Truth/<prompt_corpus>_truth.txt` - use this naming convention)
+Text files containing reference answers, using the same delimiter:
+```
+The capital of France is Paris.
+---
+Machine learning is a branch of artificial intelligence...
+---
+Hamlet is a tragedy by William Shakespeare...
+```
 
 ## Configuration (`config.json`)
 
-The pipeline uses a central `config.json` file to manage settings for both generation and evaluation. Command-line arguments can override settings in the config file.
+The pipeline uses a central `config.json` file:
 
-* **Example `config.json`**:
-    ```json
-    {
-        "models_file": "Input/models.txt",
-        "prompt_corpora_file": "Input/corpora.txt",
-        "output_dir": "Output",
-        "prompts_dir": "Input/Prompts",
-        "truth_dir": "Input/Truth",  // Directory for ground truth files
-        "max_tokens": 2048,
-        "temperature": 0.7,
-        "top_p": 0.95,
-        "top_k": 40,
-        "repeat_penalty": 1.1,
-        "delimiter": "---",
-        "prompt_template": "{prompt}",
-        "n_ctx": 4096,
-        "rope_freq_base": 10000.0,
-        "rope_freq_scale": 1.0,
-        "n_threads": null,           // null for auto-detect (CPU)
-        "n_gpu_layers": -1,          // -1 for max GPU offload, 0 for CPU
-        "memory_reserve_gb": 0.0,    // Optional: Reserve system RAM (requires psutil)
-        "stream_output": false,      // Stream runner output to console?
-        "verbose": true,             // Verbose logging from llama.cpp?
-        "performance_log": false     // Include detailed perf stats in _out.json?
-    }
-    ```
+```json
+{
+    "models_file": "Input/models.txt",
+    "prompt_corpora_file": "Input/corpora.txt",
+    "output_dir": "Output",
+    "prompts_dir": "Input/Prompts",
+    "truth_dir": "Input/Truth",
+    "delimiter": "---",
+    "prompt_template": "{prompt}",    // For standardized input tuning across every prompts
+    "max_tokens": 1024,           // Maximum response length
+    "temperature": 0.75,          // Randomness
+    "top_p": 0.95,                // Desired sum of scores
+    "top_k": 40,                  // Number of tokens to sample
+    "repeat_penalty": 1.2,        // Penalty for repeating n-gram tokens, reduces chance of output looping
+    "n_ctx": 8192,                // Context size (Recommend >20GB VRAM for 8192 token context)
+    "rope_freq_base": 10000.0,    // Rope Frequency Base (for advanced users - usually leave default)
+    "rope_freq_scale": 1.0,       // Rope Frequency Scale (for advanced users - usually leave default)
+    "n_threads": null,            // How many CPU threads to use, null for automatic assignment
+    "n_gpu_layers": -1,           // How many compute layers to offload to the GPU, -1 for as many as possible
+    "memory_reserve_gb": 0.0,     // Will provide advance warning for OOM issues
+    "stream_output": true,        // Show live LLM output
+    "verbose": true,              // Show llama-cpp-python verbose output
+    "performance_log": false,     // Shows per-token performance metrics (WARNING: Increases performance overhead and output file size)
+    "visualize": true             // Automatically calls visualizer after evaluation step
+}
+```
 
-* **Key Shared Parameters**: `models_file`, `prompt_corpora_file`, `output_dir`, `prompts_dir`, `truth_dir`, `delimiter`.
-* **Generation Parameters**: `max_tokens`, `temperature`, `top_p`, `top_k`, `repeat_penalty`, `prompt_template`, `n_ctx`, `rope_freq_base`, `rope_freq_scale`, `n_threads`, `n_gpu_layers`, `memory_reserve_gb`, `stream_output`, `verbose`, `performance_log`.
-* **Evaluation Parameters**: The evaluation script primarily uses the directory/file paths (`output_dir`, `models_file`, `prompt_corpora_file`, `prompts_dir`, `truth_dir`) and the `delimiter` to locate and process the generated outputs and truth files.
+Key Parameters:
+- **Path Settings**: `models_file`, `prompt_corpora_file`, `output_dir`, `prompts_dir`, `truth_dir` - ensure that these are set correctly
 
 ## Running the Pipeline
 
-Ensure your conda environment is active (`conda activate gguf_pipeline`).
+### 1. Generate Outputs and Evaluate
+```bash
+# Run with default config.json
+python gguf_prompt_runner.py --config_file config.json --evaluate # will automatically begin evaluation after generation is complete
 
-There are three main ways to run the pipeline:
+# Override specific parameters
+python gguf_prompt_runner.py --config_file config.json --temperature 0.8 --max_tokens 2048 --evaluate
+```
 
-1.  **Generate Outputs and Evaluate Immediately**:
-    Run the `gguf_prompt_runner.py` script. You can either use the `--evaluate` flag or answer 'y' when prompted after generation finishes (if run interactively). This uses the configuration specified in `config.json`.
-    ```bash
-    # Option 1: Use the flag
-    python gguf_prompt_runner.py --config_file config.json --evaluate
+### 2. Generate Outputs Only
+```bash
+python gguf_prompt_runner.py --config_file config.json
+# Answer 'n' when prompted about evaluation
+```
 
-    # Option 2: Run without flag and answer 'y' when prompted
-    python gguf_prompt_runner.py --config_file config.json
-    # ... (wait for generation) ...
-    # Run evaluation? (y/N): y
-    ```
-    You can still override specific generation parameters via CLI:
-    ```bash
-    python gguf_prompt_runner.py --config_file config.json --temperature 0.8 --evaluate
-    ```
+### 3. Run Evaluation Only
+```bash
+python evaluate_outputs.py --config_file config.json
 
-2.  **Generate Outputs Only**:
-    Run the `gguf_prompt_runner.py` script *without* the `--evaluate` flag and answer 'n' (or press Enter) if prompted.
-    ```bash
-    python gguf_prompt_runner.py --config_file config.json
-    # ... (wait for generation) ...
-    # Run evaluation? (y/N): n
-    ```
+# To explicitly enable visualization
+python evaluate_outputs.py --config_file config.json --visualize
 
-3.  **Run Evaluation Only** (Assumes outputs already exist):
-    If you have already generated the outputs using `gguf_prompt_runner.py`, you can run the evaluation script directly. It will read the `config.json` to find the outputs and truth files.
-    ```bash
-    python evaluate_outputs.py --config_file config.json
-    ```
-    This is useful if you want to re-run the analysis, adjusted the truth files, or if the generation step was interrupted.
+# To explicitly disable visualization
+python evaluate_outputs.py --config_file config.json --no-visualize
+```
 
-## Output Structure
+## Output and Visualizations
 
-The pipeline generates outputs in the specified `output_dir` (default: `Output/`):
+### JSON and Text Outputs
+- **Model-specific outputs**: `Output/<ModelName>/<corpus>_out.json` and `<corpus>_out.txt`
+- **Aggregated results**: `all_evaluation_results.json/csv` and `all_performance_metrics.json/csv`
 
-1.  **Per-Model/Per-Corpus Outputs** (Inside `Output/<ModelNameStem>/`):
-    * **`<corpus_stem>_out.json`**: Detailed JSON list. Each entry corresponds to a prompt and includes:
-        * `prompt_id`, `corpus_file`, `prompt` (original text)
-        * `response` (model's generated text)
-        * `generation_time`, `tokens` (response tokens), `tokens_per_second`
-        * `timestamp`, `model_name` (Added by evaluation script phase)
-        * `response_length_tokens` (Added by evaluation script phase)
-        * `bleu_score` (float, if truth available, added by evaluation script)
-        * `rouge_scores` (dict of f-measures, if truth available, added by evaluation script)
-        * `error` (if applicable)
-        * `performance_stats` (dict, if `performance_log: true` in config during generation)
-    * **`<corpus_stem>_out.txt`**: Human-readable text file showing prompts, responses, and basic stats.
+### Visualizations
+When the `visualize` config option is enabled, the pipeline generates:
 
-2.  **Aggregated Evaluation Outputs** (Inside `Output/`):
-    * **`all_evaluation_results.json`**: JSON list containing per-prompt results across **all models**. Excludes the full `prompt` and `response` text to keep the file size manageable. Includes identifiers, model name, token counts, and scores (BLEU/ROUGE).
-    * **`all_evaluation_results.csv`**: Same data as the JSON counterpart, in CSV format (requires `pandas`). Useful for spreadsheet analysis.
-    * **`all_performance_metrics.json`**: JSON list containing aggregated results, with one entry **per model**. Shows average metrics like `avg_tokens_per_second`, `avg_response_length_tokens`, `avg_bleu_score`, `avg_rouge1`, etc., calculated across all prompts processed for that model.
-    * **`all_performance_metrics.csv`**: Same aggregated data as the JSON counterpart, in CSV format (requires `pandas`). Ideal for comparing model performance summaries.
+1. **Overall Performance Plots** (in `Output/plots/`):
+   - `avg_performance_per_model.png`: Bar charts showing average tokens-per-second and response length
+   - `avg_scores_per_model.png`: Bar chart comparing BLEU and ROUGE scores across models
+   - `avg_speed_vs_avg_scores.png`: Scatter plot showing speed vs. accuracy tradeoffs
 
-## Troubleshooting Common Issues
+2. **Model-Specific Plots** (in `Output/<ModelName>/plots/`):
+   - `<ModelName>_speed_vs_bleu.png`: Scatter plot of tokens-per-second vs. BLEU scores
+   - `<ModelName>_speed_vs_rouge.png`: Scatter plot of tokens-per-second vs. ROUGE scores
+   - `<ModelName>_perf_vs_prompt_id.png`: Line graph showing performance across prompts
+   - `<ModelName>_scores_vs_prompt_id.png`: Line graph showing evaluation scores across prompts
 
-* **`llama-cpp-python` Installation Failures**: See original README section. Ensure compilers and GPU toolkits (if used) are correctly installed and configured.
-* **Model Not Using GPU**: See original README section. Verify build flags and `n_gpu_layers` setting. Check `verbose` output and system monitoring tools.
-* **File Not Found Errors**: Double-check paths in `config.json` and the list files (`models.txt`, `corpora.txt`). Ensure `prompts_dir` and `truth_dir` exist and contain the necessary files. Check that `corpora.txt` lists **basenames**, not full paths. Use absolute paths if relative paths are ambiguous.
-* **Evaluation Script Errors**:
-    * **Missing Truth Files**: Ensure truth files exist in the specified `truth_dir`, are correctly named (`<corpus_stem>_truth.txt`), and use the same delimiter as the prompt files.
-    * **Prompt/Truth Mismatch**: Scoring is skipped if the number of prompts and truths in corresponding files doesn't match. Check the files and delimiters.
-    * **Missing Libraries**: Ensure `nltk`, `rouge-score`, `pandas` are installed in the environment (`pip install nltk rouge-score pandas`).
-* **Slow Performance**: See original README section. GPU acceleration (`n_gpu_layers > 0`) is crucial for speed. Check CPU thread count (`n_threads`) if running on CPU.
+3. **Corpus-Level Plots**:
+   - Performance trends for each corpus showing variation across prompts
+
+## Troubleshooting
+
+### Installation Issues
+- **CUDA Compilation Errors**: 
+  - Ensure CUDA Toolkit version matches your GPU driver
+  - For Windows, check that Visual Studio Build Tools is properly installed
+  - Try: `nvcc --version` to verify CUDA compiler is available
+
+- **Build Errors**:
+  - Windows: Check environment variables (CUDA_PATH)
+  - Linux: Ensure correct development packages are installed (`build-essential`, `python3-dev`)
+  - Mac: Run `xcode-select --install` to ensure command-line tools are available
+
+- **Pre-built Wheel Issues**:
+  - Make sure to match CUDA version with your installed CUDA Toolkit
+
+### Runtime Issues
+- **Model Not Loading**: Check the path in `models.txt` and ensure it's an actual GGUF file
+- **GPU Not Being Used**: 
+  - Verify that `n_gpu_layers` is set to -1 or a positive number
+  - Check `verbose` output for GPU layer loading confirmation
+  - Monitor GPU utilization with tools (NVIDIA SMI, Windows Task Manager)
+
+- **Performance Too Slow**:
+  - Increase `n_threads` for CPU usage
+  - Set `n_gpu_layers` to -1 for maximum GPU offload
+  - Consider using models with fewer parameters and higher quantization for better performance
+
+- **Out of Memory Errors**:
+  - Reduce `n_ctx` value
+  - Use more aggressively quantized models (e.g., Q4 instead of Q8)
+  - Set `memory_reserve_gb` to a non-zero value to assist in debugging
+
+### Evaluation Issues
+- **Missing Scores**:
+  - Ensure truth files exist in the correct location and match prompt file names
+  - Check that the number of entries in truth files matches the prompt files
+  - Verify that evaluation dependencies are installed (`nltk`, `rouge-score`)
+
+- **Visualization Errors**:
+  - Install visualization dependencies: `pip install matplotlib seaborn numpy`
+  - Ensure the `Output` directory is writable
+
+## Credits
+This README file was created with assistance from Claude Sonnet 3.7
