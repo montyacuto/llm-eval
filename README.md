@@ -225,22 +225,22 @@ The pipeline uses a central `config.json` file:
     "prompts_dir": "Input/Prompts",
     "truth_dir": "Input/Truth",
     "delimiter": "---",
-    "prompt_template": "{prompt}",    // For standardized input tuning across every prompts
-    "max_tokens": 1024,           // Maximum response length
-    "temperature": 0.75,          // Randomness
-    "top_p": 0.95,                // Desired sum of scores
-    "top_k": 40,                  // Number of tokens to sample
-    "repeat_penalty": 1.2,        // Penalty for repeating n-gram tokens, reduces chance of output looping
-    "n_ctx": 8192,                // Context size (Recommend >20GB VRAM for 8192 token context)
-    "rope_freq_base": 10000.0,    // Rope Frequency Base (for advanced users - usually leave default)
-    "rope_freq_scale": 1.0,       // Rope Frequency Scale (for advanced users - usually leave default)
-    "n_threads": null,            // How many CPU threads to use, null for automatic assignment
-    "n_gpu_layers": -1,           // How many compute layers to offload to the GPU, -1 for as many as possible
-    "memory_reserve_gb": 0.0,     // Will provide advance warning for OOM issues
-    "stream_output": true,        // Show live LLM output
-    "verbose": true,              // Show llama-cpp-python verbose output
-    "performance_log": false,     // Shows per-token performance metrics (WARNING: Increases performance overhead and output file size)
-    "visualize": true             // Automatically calls visualizer after evaluation step
+    "prompt_template": "{prompt}",    # For standardized input tuning across every prompts
+    "max_tokens": 1024,           # Maximum response length
+    "temperature": 0.75,          # Lower == more deterministic, higher == more random
+    "top_p": 0.95,                # Desired sum of scores
+    "top_k": 40,                  # Number of tokens to sample
+    "repeat_penalty": 1.2,        # Penalty for repeating n-gram tokens, reduces chance of output looping
+    "n_ctx": 8192,                # Context size (Recommend >20GB VRAM for 8192 token context)
+    "rope_freq_base": 10000.0,    # Rope Frequency Base (for advanced users - usually leave default)
+    "rope_freq_scale": 1.0,       # Rope Frequency Scale (for advanced users - usually leave default)
+    "n_threads": null,            # How many CPU threads to use, null for automatic assignment
+    "n_gpu_layers": -1,           # How many compute layers to offload to the GPU, -1 for as many as possible
+    "memory_reserve_gb": 0.0,     # Will provide advance warning for OOM issues
+    "stream_output": true,        # Show live LLM output
+    "verbose": true,              # Show llama-cpp-python verbose output
+    "performance_log": false,     # Shows per-token performance metrics (WARNING: Increases performance overhead and output file size)
+    "visualize": true             # Automatically calls visualizer after evaluation step
 }
 ```
 
