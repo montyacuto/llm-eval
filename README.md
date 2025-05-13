@@ -217,7 +217,7 @@ Hamlet is a tragedy by William Shakespeare...
 
 The pipeline uses a central `config.json` file:
 
-```json
+```
 {
     "models_file": "Input/models.txt",
     "prompt_corpora_file": "Input/corpora.txt",
